@@ -14,7 +14,7 @@ void initSD() {
     logFile = SD.open("log.csv", FILE_WRITE);
     if (!logFile) {
       Serial.println("Failed to open log file.");
-      Serial2.println("sdc=0")
+      Serial2.println("sdc=0");
     }
     else
     {
@@ -24,7 +24,7 @@ void initSD() {
   }
 }
 
-void logToSD(uint8_t canID, uint8_t deviceID, String data) 
+void logToSD(uint16_t canID, uint8_t deviceID, String data) 
 {
   if (SD_state == 1 && logFile) 
   {

@@ -1,7 +1,10 @@
+#include <MPU6050.h>
+
 #ifndef TEMPS_H
 #define TEMPS_H
 
-int MotorTempData[24][2] = {
+// Use 'static const' to prevent multiple definition errors
+static const int MotorTempData[24][2] = {
     {980,  -55},
     {1030, -50},
     {1135, -40},
@@ -28,7 +31,7 @@ int MotorTempData[24][2] = {
     {4280, 150}
 };
 
-int ControllerTempData[33][2] = {
+static const int ControllerTempData[33][2] = {
     {16308, -30},
     {16387, -25},
     {16487, -20},
@@ -63,8 +66,8 @@ int ControllerTempData[33][2] = {
     {28480, 125}
 };
 
-//Calculated values of motor temperature (degrees Celsius)
-float getMotorTemp(float value){
+// Use 'inline' to prevent multiple definition errors
+inline float getMotorTemp(float value){
   int high = 23;
   int low = 0;
   int mid = 0;
@@ -87,9 +90,8 @@ float getMotorTemp(float value){
   return (float)MotorTempData[low][1] + (res - MotorTempData[low][0]) * ((float)(MotorTempData[high+1][1] - MotorTempData[low][1]) / (MotorTempData[high+1][0] - MotorTempData[low][0]));
 }
 
-
-//Calculated values of controller temperature (degrees Celsius)
-float getControllerTemp(float val){
+// Use 'inline' to prevent multiple definition errors
+inline float getControllerTemp(float val){
   int high = 32;
   int low = 0;
   int mid = 0;
@@ -110,5 +112,6 @@ float getControllerTemp(float val){
   //Linear Interpolation
   return (float)ControllerTempData[low][1] + (val - ControllerTempData[low][0]) * ((float)(ControllerTempData[high+1][1] - ControllerTempData[low][1]) / (ControllerTempData[high+1][0] - ControllerTempData[low][0]));
 }
+
 
 #endif // TEMPS_H

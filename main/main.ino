@@ -18,18 +18,34 @@ int ts_state = 0;
 int IMD_state = 0;
 int BMS_state = 0;
 
+bool fault_BMS = false;
+bool fault_IMD = false;
+bool fault_BSPD = false;
+bool fault_rear_teensy = false;
+bool fault_state = false;
+
+
 void setup() 
 {
   Wire.begin();
   Wire.setClock(400000);
   Serial.begin(115200);
   Serial2.begin(19200);
-  //while(!Serial); // Nothing will happen until you open the serial monitor(for testing only)
+  
   Serial.println("Initializing");
   initDriverInputs();
   initMPU();
   initSD();
   initCAN();
+  
+  //pinMode(START, INPUT_PULLUP); -enables internal pullup
+
+  // Initialize ALL interrupts
+  initTorqueInterrupt();      // 100 Hz - Torque control
+  initFaultCheckInterrupt();  // 100 Hz - Fault monitoring
+  initTempCheckInterrupt();   // 2 Hz - Temperature monitoring
+  
+  Serial.println("All interrupts initialized");
 }
 
 void plausibilityError()
@@ -42,10 +58,7 @@ void plausibilityError()
 
 void loop() 
 {
-  unsigned long current_time = millis();
-
-  getAccelerometerData();
-  readMsg();
-  getDriverInputs(current_time);
-  updateRaspi();
+  getAccelerometerData();  // SD logging
+  updateRaspi();           // Display updates
+  checkSD();               // SD card health
 }
