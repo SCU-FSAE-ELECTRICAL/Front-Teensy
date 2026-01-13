@@ -18,6 +18,11 @@ int ts_state = 0;
 int IMD_state = 0;
 int BMS_state = 0;
 
+const int potPin = A4;
+int potValue;
+float fakeRpm;
+
+
 bool fault_BMS = false;
 bool fault_IMD = false;
 bool fault_BSPD = false;
@@ -37,6 +42,9 @@ void setup()
   initMPU();
   initSD();
   initCAN();
+
+  //LED Setup
+  initLEDs();
   
   //pinMode(START, INPUT_PULLUP); -enables internal pullup
 
@@ -46,6 +54,8 @@ void setup()
   initTempCheckInterrupt();   // 2 Hz - Temperature monitoring
   
   Serial.println("All interrupts initialized");
+
+  pinMode(potPin, INPUT);
 }
 
 void plausibilityError()
@@ -61,4 +71,13 @@ void loop()
   getAccelerometerData();  // SD logging
   updateRaspi();           // Display updates
   checkSD();               // SD card health
+
+  
+  potValue = analogRead(potPin);
+  fakeRpm = map(pot, 0 ,1023, 0, 5500);
+  readMsg();          
+  setRpmBar(fakeRpm);   
+  Serial.println(potValue);  
+  delay(10);       
+  
 }

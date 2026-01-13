@@ -131,6 +131,9 @@ void faultCheckISR();
 void tempCheckISR();
 void resetFaults();
 
+void initLEDs();
+void setRpmBar(float rpm);
+
 float getControllerTemp(float value);
 float getMotorTemp(float value);
 
