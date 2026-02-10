@@ -1,10 +1,6 @@
 #include <FastLED.h>
 #include "functions.h"
 
-#define NUM_LEDS 10
-#define COLOR_ORDER GRB
-#define LED_TYPE WS2812B
-#define BRIGHTNESS 80
 
 #define RPM_LED_PIN 6
 #define SOC_LED_PIN 7
@@ -57,10 +53,12 @@ void setRpmBar(float rpm) {
   int lit = mapRpm(rpm);
   for (int i = 0; i < NUM_LEDS; i++)
     rpmLeds[i] = (i < lit) ? rpmColor(i) : CRGB::Black;
+  FastLED.show();
 }
 
 void setSocBar(float soc) {
   int lit = mapSoc(soc);
   for (int i = 0; i < NUM_LEDS; i++)
     socLeds[i] = (i < lit) ? socColor(i) : CRGB::Black;
+  FastLED.show();
 }
