@@ -8,6 +8,8 @@ IntervalTimer torqueTimer;
 IntervalTimer faultCheckTimer;
 IntervalTimer tempCheckTimer;
 
+#define TEST_MODE 1  // Set to 0 for real car, 1 for testing
+
 // Fault state variables
 static unsigned long appsFaultStart = 0;
 static bool appsFaultLatched = false;
@@ -27,12 +29,17 @@ static unsigned long brakeFaultStart = 0;
 const int VOLTAGE_MIN = 102;
 const int VOLTAGE_MAX = 921;
 
+const int BRAKE_THRESHOLD = 25;
+
+//can IDs (need to be checked)
+const uint16_t CAN_BRAKE_LIGHT_ID = 0x108;
+const uint8_t BRAKE_LIGHT_DATA_ID = 0x42;
+
 // ============================================================================
 // TORQUE CONTROL INTERRUPT - 100 Hz (10ms)
 // ============================================================================
 void torqueISR() {
     #if SIMULATION_MODE
-    // ------------ SIMULATION MODE ------------
     static unsigned long sim_last = 0;
     static float sim_apps = 0;  
     
@@ -72,8 +79,7 @@ void torqueISR() {
         fault_state = true;
     }
     cmdrpm = fault_state ? 0 : (sim_apps * 55);
-    
-    // ===== DEBUG OUTPUT =====
+
     static unsigned long lastPrint = 0;
     if (millis() - lastPrint > 500) {  // Print every 500ms
         Serial.print("APPS="); Serial.print(sim_apps, 1);
@@ -97,6 +103,7 @@ void torqueISR() {
     int brake1_raw = analogRead(BRAKE);
     int brake2_raw = analogRead(BRAKE2);
 
+    #if !TEST_MODE
     // APPS voltage range check (0.5V - 4.5V)
     if (pedal1 < VOLTAGE_MIN || pedal1 > VOLTAGE_MAX ||
         pedal2 < VOLTAGE_MIN || pedal2 > VOLTAGE_MAX) {
@@ -119,14 +126,23 @@ void torqueISR() {
     } else {
         brakeFaultStart = 0;
     }
+    #endif
 
     // Determine brake state
-    bool brake_pressed = ((brake1_raw + brake2_raw) / 2) > 25; //make constant
+    #if !TEST_MODE
+    bool brake_pressed = ((brake1_raw + brake2_raw) / 2) > BRAKE_THRESHOLD; 
     brake = brake_pressed;
+    #else
+    // Test mode - no brakes wired, always false
+    bool brake_pressed = false;
+    brake = false;
+    #endif
 
     // APPS sensor mismatch (>10% for >100ms)
     float pedal1_pct = (pedal1 / 1023.0) * 100.0;
     float pedal2_pct = (pedal2 / 1023.0) * 100.0;
+    
+    #if !TEST_MODE
     float diff_pct = abs(pedal1_pct - pedal2_pct);
 
     if (diff_pct > 10.0) {
@@ -149,6 +165,7 @@ void torqueISR() {
     if (btoFaultLatched && pedal1_pct < 5.0 && pedal2_pct < 5.0) {
         btoFaultLatched = false;
     }
+    #endif
 
     // Check ALL faults
     if (appsFaultLatched || btoFaultLatched || brakeFaultLatched ||
@@ -160,9 +177,10 @@ void torqueISR() {
         sendCommand(0x31, 0);
         fault_state = true;
         
-        sendInfo(0x108, 2, 0x42, 1); //check
-        
-        // ===== DEBUG OUTPUT FOR REAL MODE =====
+        #if !TEST_MODE
+        sendInfo(CAN_BRAKE_LIGHT_ID, 2, BRAKE_LIGHT_DATA_ID, brake_pressed ? 1 : 0);
+        #endif
+
         static unsigned long lastPrintReal = 0;
         if (millis() - lastPrintReal > 500) {
             Serial.print("FAULT ACTIVE | RPM=0 | Faults: ");
@@ -190,19 +208,23 @@ void torqueISR() {
     int rpm_cmd = map(apps_avg, 0, 1023, 0, 5500);
 
     if (rpm_cmd < 30) rpm_cmd = 0;
+    
+    #if !TEST_MODE
     if (brake_pressed) rpm_cmd = 0;
+    #endif
 
     cmdrpm = rpm_cmd * 32767 / 5500;
     sendCommand(0x31, cmdrpm);
 
+    #if !TEST_MODE
     // Send brake light status
     static bool lastBrakeState = false;
     if (brake_pressed != lastBrakeState) {
-        sendInfo(0x108, 2, 0x42, brake_pressed ? 1 : 0);
+        sendInfo(CAN_BRAKE_LIGHT_ID, 2, BRAKE_LIGHT_DATA_ID, brake_pressed ? 1 : 0);
         lastBrakeState = brake_pressed;
     }
+    #endif
     
-    // ===== DEBUG OUTPUT FOR REAL MODE =====
     static unsigned long lastPrintReal2 = 0;
     if (millis() - lastPrintReal2 > 200) {
         Serial.print("APPS1="); Serial.print(pedal1);
@@ -221,6 +243,7 @@ void torqueISR() {
 // Monitors BMS, IMD, BSPD, and heartbeat from rear MCU
 // ============================================================================
 void faultCheckISR() {
+    #if !TEST_MODE
     CAN_message_t msg;
     
     // Read all fault messages from CAN2
@@ -246,6 +269,13 @@ void faultCheckISR() {
     } else {
         fault_rear_teensy = false;
     }
+    #else
+    // Testing Mode
+    fault_rear_teensy = false;
+    fault_BMS = false;
+    fault_IMD = false;
+    fault_BSPD = false;
+    #endif
 }
 
 // ============================================================================
