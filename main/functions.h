@@ -20,6 +20,8 @@
 #define IMD_LED A16
 #define BMS_LED A15
 
+#define SIMULATION_MODE 0   // 1 = simulate without Teensy, 0 = real hardware
+
 class Buzzer {
   int pin;
   unsigned long pulseTime;
@@ -67,6 +69,9 @@ public:
   }
 };
 
+extern FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> can1;
+extern FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> can2;
+
 extern int state;
 extern int ts_state;
 extern int can1_state;
@@ -84,6 +89,17 @@ extern float Mtemperature;
 extern float rpm;
 extern int cmdrpm;
 extern Buzzer RTDSpeaker;
+//stuff i added
+extern int brake;
+extern bool fault_IMD;
+extern bool fault_BMS;
+extern bool fault_BSPD;
+extern bool fault_rear_teensy;
+//extern bool fault_state;
+extern unsigned long lastBMSTime;
+extern unsigned long lastIMDTime;
+extern unsigned long lastBSPDTime;
+
 
 void initMPU(void);
 void calibrateMPU(void);
@@ -92,7 +108,7 @@ void initSmallLCD(void);
 void initCAN(void);
 void initDriverInputs();
 void getAccelerometerData(void);
-void logToSD(uint8_t canID, uint8_t deviceID, String data);
+void logToSD(uint16_t canID, uint8_t deviceID, String data);  
 void closeSD();
 void checkSD();
 void getDriverInputs(unsigned long current_time);
@@ -102,8 +118,23 @@ void disableDriverControl();
 void plausibilityError();
 void sendRequest(uint8_t Register);
 void sendCommand(uint8_t Register, int data);
+void sendInfo(int id, int len, uint8_t var, int data);  
 void readMsg();
 void updateRaspi();
 void waitForSerial();
+
+void initTorqueInterrupt();
+void initFaultCheckInterrupt();
+void initTempCheckInterrupt();
+void torqueISR();
+void faultCheckISR();
+void tempCheckISR();
+void resetFaults();
+
+void initLEDs();
+void setRpmBar(float rpm);
+
+float getControllerTemp(float value);
+float getMotorTemp(float value);
 
 #endif
