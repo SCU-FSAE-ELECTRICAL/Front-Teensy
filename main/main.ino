@@ -18,10 +18,15 @@ int ts_state = 0;
 int IMD_state = 0;
 int BMS_state = 0;
 
-const int potPin = A4;
-int potValue;
-float fakeRpm;
+const int rpmPotPin = A4;
+const int socPotPin = A5;
+int rpmPotValue;
+int socPotValue;
 
+/*
+float fakeRpm;
+float fakeSoc;
+*/
 
 bool fault_BMS = false;
 bool fault_IMD = false;
@@ -55,7 +60,6 @@ void setup()
   
   Serial.println("All interrupts initialized");
 
-  pinMode(potPin, INPUT);
 }
 
 void plausibilityError()
@@ -68,16 +72,11 @@ void plausibilityError()
 
 void loop() 
 {
-  getAccelerometerData();  // SD logging
-  updateRaspi();           // Display updates
-  checkSD();               // SD card health
+  getAccelerometerData();
+  updateRaspi();
+  checkSD();
 
-  
-  potValue = analogRead(potPin);
-  fakeRpm = map(pot, 0 ,1023, 0, 5500);
-  readMsg();          
-  setRpmBar(fakeRpm);   
-  Serial.println(potValue);  
-  delay(10);       
-  
+  // readMsg();
+
+  delay(10);
 }
