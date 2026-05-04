@@ -204,8 +204,22 @@ void torqueISR() {
     // Normal torque mapping
     fault_state = false;
     
+    int rpm_cmd;
+
+    #if TEST_MODE
+    int pedal1Calibrated = constrain(pedal1, 282, 520);
+    int pedal2Calibrated = constrain(pedal2, 255, 461);
+
+    float pedal1_pct_test = ((float)(520 - pedal1Calibrated) / (520 - 282)) * 100.0;
+    float pedal2_pct_test = ((float)(461 - pedal2Calibrated) / (461 - 255)) * 100.0;
+
+    float apps_pct_test = (pedal1_pct_test + pedal2_pct_test) / 2.0;
+
+    rpm_cmd = (int)((apps_pct_test / 100.0) * 5500);
+    #else
     int apps_avg = (pedal1 + pedal2) / 2;
-    int rpm_cmd = map(apps_avg, 0, 1023, 0, 5500);
+    rpm_cmd = map(apps_avg, 0, 1023, 0, 5500);
+    #endif
 
     if (rpm_cmd < 30) rpm_cmd = 0;
     
@@ -229,8 +243,14 @@ void torqueISR() {
     if (millis() - lastPrintReal2 > 200) {
         Serial.print("APPS1="); Serial.print(pedal1);
         Serial.print(" APPS2="); Serial.print(pedal2);
+        #if TEST_MODE
+        Serial.print(" TEST_PCT=");
+        Serial.print(apps_pct_test, 1);
+        Serial.print("%");
+        #else
         Serial.print(" ("); Serial.print(pedal1_pct, 1); Serial.print("%, ");
         Serial.print(pedal2_pct, 1); Serial.print("%)");
+        #endif
         Serial.print(" | Brake="); Serial.print(brake_pressed ? "ON " : "OFF");
         Serial.print(" | RPM_CMD="); Serial.print(cmdrpm);
         Serial.println();
