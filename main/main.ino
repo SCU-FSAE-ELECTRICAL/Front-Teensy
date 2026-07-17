@@ -54,6 +54,19 @@ void setup() {
   pinMode(SPEAKER, OUTPUT);
   pinMode(LIGHT, OUTPUT);
   digitalWrite(SPEAKER, LOW);
+  delay(10000);
+  // Two-step enable sequence per NDrive manual
+  // Step 1: Lock first
+  sendCommand(0x51, 0x0004);
+  digitalWrite(SPEAKER, HIGH);
+  speakerOn = true;
+  delay(1000);
+  digitalWrite(SPEAKER, LOW);
+  speakerOn = false;
+  delay(1000);
+  // Step 2: Then enable
+  
+
 }
 
 void loop() {
@@ -73,6 +86,8 @@ void loop() {
         digitalWrite(LIGHT, HIGH);
         // Entering drive
         digitalWrite(SPEAKER, HIGH);
+        sendCommand(0x51, 0x0000);
+        speakerOn = false;
         speakerStartTime = currentTime;
         speakerOn = true;
       } else {
@@ -81,6 +96,7 @@ void loop() {
         digitalWrite(SPEAKER, LOW);
         speakerOn = false;
         sendCommand(0x31, 0);
+        sendCommand(0x51, 0x0004);
       }
     }
   }
@@ -151,10 +167,9 @@ void getPedals()
 
   int mapped1 = constrain(map(pedal1Raw, 410, 195, 0, 32767), 0, 32767);
   int mapped2 = constrain(map(pedal2Raw, 358, 165, 0, 32878), 0, 32767);
-
+  
   uint16_t averagePedal = (mapped1 + mapped2) / 2;
-  Serial.println(averagePedal);
-  if (averagePedal < 1000) // Adjust this to change deadzone
+  if (averagePedal < 1500) // Adjust this to change deadzone
     sendCommand(0x90, 0); // 0x31 for rpm, 0x90 for torque
   else
     sendCommand(0x90, averagePedal);
